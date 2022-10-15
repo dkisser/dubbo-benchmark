@@ -8,6 +8,7 @@ usage() {
     echo "         -p port, port number"
     echo "         -f output file path"
     echo "         -a other args"
+    echo "         -S server mode"
     echo "dirname: test module name"
 }
 
@@ -47,8 +48,9 @@ PORT="8080"
 OUTPUT=""
 OPTIND=1
 OTHERARGS=""
+SERVER_MODE=0
 
-while getopts "m:s:p:f:a:" opt; do
+while getopts "m:s:p:f:a:S:" opt; do
     case "$opt" in
         m)
             MODE=${OPTARG}
@@ -64,6 +66,9 @@ while getopts "m:s:p:f:a:" opt; do
             ;;
         a)
             OTHERARGS=${OPTARG}
+            ;;
+        S)
+            SERVER_MODE=1
             ;;
         ?)
             usage
@@ -82,11 +87,18 @@ fi
 
 build
 java_options
+if [ ${SERVER_MODE} -ne 0 ];then
+  # shellcheck disable=SC2068
+  for str in $@; do
+    run $str &
+  done
+  else
+    # shellcheck disable=SC2068
+    for str in $@; do
+      run $str
+    done
+fi
 
-# shellcheck disable=SC2068
-for str in $@; do
-  run str
-done
 
 
 

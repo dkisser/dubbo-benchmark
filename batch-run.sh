@@ -9,11 +9,12 @@ usage() {
     echo "         -f output file path"
     echo "         -a other args"
     echo "         -S server mode"
+    echo "         -r result file path"
     echo "dirname: test module name"
 }
 
 build() {
-    mvn --projects benchmark-base,client-base,server-base,${PROJECT_DIR} clean package
+    mvn --projects benchmark-base,client-base,server-base,$1 clean package
 }
 
 java_options() {
@@ -22,18 +23,17 @@ java_options() {
         JAVA_OPTIONS="${JAVA_OPTIONS} \
             -XX:+UnlockCommercialFeatures \
             -XX:+FlightRecorder \
-            -XX:StartFlightRecording=duration=30s,filename=${PROJECT_DIR}.jfr \
+            -XX:StartFlightRecording=duration=30s,filename=$1.jfr \
             -XX:FlightRecorderOptions=stackdepth=256"
     fi
 }
 
 run() {
-    moduel=$1
-    if [ -d "${moduel}/target" ]; then
-        JAR=`find ${moduel}/target/*.jar | head -n 1`
+    if [ -d "$1/target" ]; then
+        JAR=`find $1/target/*.jar | head -n 1`
         echo
-        echo "RUN ${moduel} IN ${MODE:-benchmark} MODE"
-        CMD="java ${JAVA_OPTIONS} -Dserver.host=${SERVER} -Dserver.port=${PORT} -Dbenchmark.output=${OUTPUT} -jar ${JAR} ${OTHERARGS}"
+        echo "RUN $1 IN ${MODE:-benchmark} MODE"
+        CMD="java ${JAVA_OPTIONS} -Dserver.host=${SERVER} -Dserver.port=${PORT} -Dbenchmark.output=${OUTPUT} -Dbenchmark.output=${RESULT} -jar ${JAR} ${OTHERARGS}"
         echo "command is: ${CMD}"
         echo
         ${CMD}
@@ -49,8 +49,9 @@ OUTPUT=""
 OPTIND=1
 OTHERARGS=""
 SERVER_MODE=0
+RESULT=""
 
-while getopts "m:s:p:f:a:S:" opt; do
+while getopts "m:s:p:f:a:S:r:" opt; do
     case "$opt" in
         m)
             MODE=${OPTARG}
@@ -70,6 +71,9 @@ while getopts "m:s:p:f:a:S:" opt; do
         S)
             SERVER_MODE=1
             ;;
+        r)
+            RESULT=${OPTARG}
+            ;;
         ?)
             usage
             exit 0
@@ -85,16 +89,19 @@ if [ ! -d "${PROJECT_DIR}" ]; then
     exit 0
 fi
 
-build
-java_options
+
 if [ ${SERVER_MODE} -ne 0 ];then
   # shellcheck disable=SC2068
   for str in $@; do
+    build $str
+    java_options $str
     run $str &
   done
   else
     # shellcheck disable=SC2068
     for str in $@; do
+      build $str
+      java_options $str
       run $str
     done
 fi

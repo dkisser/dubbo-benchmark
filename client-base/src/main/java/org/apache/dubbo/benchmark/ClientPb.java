@@ -117,6 +117,11 @@ public class ClientPb {
         if (output != null && !output.trim().isEmpty()) {
             optBuilder.output(output);
         }
+
+        String result = System.getProperty("benchmark.result");
+        if (result != null && !result.trim().isEmpty()) {
+            optBuilder.result(result);
+        }
         return optBuilder;
     }
 }
